@@ -23,14 +23,18 @@ LOG.addHandler(handler)
 LDAP_HELPER = None
 
 class LdapHelper:
+    ADMIN_GROUP = 'system-admin'
+    USER_GROUP = 'system-users'
 
-    def __init__(self, host:str , bind_dn: str, bind_pw: str, base_dn: str, ldap_filter: str, ssl=False):
+    def __init__(self, host:str , bind_dn: str, bind_pw: str, base_dn: str,
+                 admin_filter: str, user_filer: str, ssl=False):
         self.server = ldap3.Server(host, use_ssl=ssl, get_info=ldap3.NONE)
         self.host = host
         self.bind_dn = bind_dn
         self.bind_pw = bind_pw
         self.base_dn = base_dn
-        self.ldap_filter = ldap_filter
+        self.admin_filter = admin_filter
+        self.user_filter = user_filer
         con = self.connect()
         con.unbind()
     
@@ -38,22 +42,39 @@ class LdapHelper:
         return ldap3.Connection(self.server, self.bind_dn, self.bind_pw, auto_bind=True, raise_exceptions=True)
 
 
-    def search(self, user: str) -> Tuple[Optional[str], ldap3.Connection]:
+    def search(self, user: str) -> Tuple[Optional[dict], ldap3.Connection]:
         user = escape_filter_chars(user)
         con = self.connect()
         filter_args = dict(username=user)
-        con.search(self.base_dn, self.ldap_filter.format(**filter_args))
-        result = con.entries
+        
+        result = []
+        user_data = dict()
+
+        for user_group, current_filter in [(self.ADMIN_GROUP, self.admin_filter), (self.USER_GROUP, self.user_filter)]:
+            con.search(self.base_dn, current_filter.format(**filter_args), attributes=['displayName', 'name'])
+            result = con.entries
+            if len(result) > 0:
+                if len(result) > 1:
+                    LOG.debug('Found more than one entry for filter %s' % (self.current_filter.format(**filter_args)))
+                    LOG.info(('Found more than one entry for filter args %s' % (filter_args)))
+                    return None, con
+                LOG.debug('Found user %s: %s' % (user, user_data))
+                result = result[0]
+
+                user_data['dn'] = result.entry_dn
+                if result.displayName.value:
+                    user_data['name'] = result.displayName.value
+                elif result.name.value: 
+                    user_data['name'] = result.name.value
+                else:
+                    user_data['name'] = user
+                user_data['group'] = user_group
+                user_data['local_only'] = "false"
+
+                return user_data, con
         if len(result) == 0:
-            LOG.debug('No result found for filter %s' % (self.ldap_filter.format(**filter_args)))
             LOG.info(('No result found for filter args %s' % (filter_args)))
             return None, con
-        if len(result) > 1:
-            LOG.debug('Found more than one entry for filter %s' % (self.ldap_filter.format(**filter_args)))
-            LOG.info(('Found more than one entry for filter args %s' % (filter_args)))
-            return None, con
-        user_dn = result[0].entry_dn
-        return user_dn, con
 
     def auth(self, con, user_dn, password):
         try:
@@ -86,15 +107,17 @@ def ldap_auth():
         return Response('Invalid request format\n', status=400)
     
     helper: LdapHelper = LDAP_HELPER
-    dn, con = helper.search(username)
-    if not dn:
+    user_data, con = helper.search(username)
+    if not user_data:
         con.unbind()
         return Response('Forbidden\n', status=403)
 
+    dn = user_data.pop('dn')
     if not helper.auth(con, dn, password):
         return Response('Forbidden\n', status=403)
     else:
-        return Response('Login successful\n', status=200)
+        resp = '\n'.join([f'{k} = {v}' for k, v in user_data.items()])
+        return Response(resp + '\n', status=200)
 
         
 @click.group()
@@ -106,16 +129,18 @@ def ldap_auth():
               help='Password for the bind dn user')
 @click.option('--base-dn', type=str, required=True,
               help="Base DN to use when looking up users")
-@click.option('--ldap-filter', type=str, required=True,
-              help="Filter for LDAP search to identify the right group membership")
+@click.option('--admin-filter', type=str, required=True,
+              help="Filter for LDAP search to identify an admin user (returns 'system-admin')")
+@click.option('--user-filter', type=str, required=True,
+              help="Filter for LDAP search to identify an admin user (returns 'system-user')")
 @click.option('--ssl', is_flag=True, default=False,
               help="Use SSL connection")
 @click.option('--log-level', type=click.Choice(['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']),
               default='INFO', help='Log level')
 @click.pass_context
-def group(ctx, host, bind_dn, bind_dn_password, base_dn, ldap_filter, ssl, log_level):
+def group(ctx, host, bind_dn, bind_dn_password, base_dn, admin_filter, user_filter, ssl, log_level):
     LOG.setLevel(log_level)
-    helper = LdapHelper(host, bind_dn, bind_dn_password, base_dn, ldap_filter, ssl)
+    helper = LdapHelper(host, bind_dn, bind_dn_password, base_dn, admin_filter, user_filter, ssl)
     ctx.ensure_object(dict)
     ctx.obj.update({'helper': helper})
 
@@ -130,12 +155,12 @@ def search(ctx, user):
     con.unbind()
 
 def _search(helper, user):
-    result, con = helper.search(user)
-    if result:
-        print(f'Success finding user {user}, dn {result}')
+    user_data, con = helper.search(user)
+    if user_data:
+        print(f'Success finding user {user}: {user_data}')
     else:
         print(f"User {user} not found")
-    return result, con
+    return user_data['dn'], con
 
 @group.command()
 @click.option('--user', '-u', type=str, required=True,
@@ -144,7 +169,7 @@ def _search(helper, user):
 @click.pass_context
 def auth(ctx, user, password):
     helper: LdapHelper = ctx.obj['helper']
-    dn, con = _search(helper, user)
+    dn, _, con = _search(helper, user)
     helper.auth(con, dn, password)
 
 
