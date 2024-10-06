@@ -9,7 +9,7 @@ import click
 import ldap3
 from ldap3.utils.conv import escape_filter_chars
 from ldap3.core.exceptions import LDAPInvalidCredentialsResult
-from flask import Flask, request, Response
+from flask import Flask, request, Response, jsonify
 
 
 app = Flask(__name__)
@@ -85,8 +85,35 @@ class LdapHelper:
             LOG.warning("Username %s credentials were incorrect" % (user_dn))
             return False
 
-@app.route('/ldap-auth', methods=['GET'])
-def ldap_auth():
+
+@app.route('/json-auth', methods=['POST'])
+def json_auth():
+    data = request.get_json()
+
+    if not data or 'username' not in data or 'password' not in data:
+        return jsonify({"message": "Bad request"}), 400
+
+    username = data['username']
+    password = data['password']
+
+    if not username or not password:
+        return jsonify({"message": "user and password must be provided"}), 400
+
+    helper: LdapHelper = LDAP_HELPER
+    user_data, con = helper.search(username)
+    if not user_data:
+        con.unbind()
+        return jsonify({"message": "invalid credential"}), 403
+
+    dn = user_data.pop('dn')
+    if not helper.auth(con, dn, password):
+        return jsonify({"message": "invalid credential"}), 403
+    else:
+        return jsonify({"message": "login succeeded", "data": user_data}), 200
+
+
+@app.route('/auth-header', methods=['GET'])
+def auth_header():
     
     auth = request.headers.get('Authorization')
 
