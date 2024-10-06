@@ -80,6 +80,8 @@ def ldap_auth():
         base64_credentials = auth.split(' ')[1]
         decoded_credentials = base64.b64decode(base64_credentials).decode('utf-8')
         username, password = decoded_credentials.split(':')
+        if not username or not password:
+            return Response('Username or password may not be empty\n', status=400)
     except Exception as e:
         return Response('Invalid request format\n', status=400)
     
