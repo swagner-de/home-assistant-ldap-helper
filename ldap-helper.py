@@ -26,15 +26,15 @@ class LdapHelper:
     ADMIN_GROUP = 'system-admin'
     USER_GROUP = 'system-users'
 
-    def __init__(self, host:str , bind_dn: str, bind_pw: str, base_dn: str,
-                 admin_filter: str, user_filer: str, ssl=False):
+    def __init__(self, host: str, bind_dn: str, bind_pw: str, base_dn: str,
+                 admin_filter: str, user_filter: str, ssl=False):
         self.server = ldap3.Server(host, use_ssl=ssl, get_info=ldap3.NONE)
         self.host = host
         self.bind_dn = bind_dn
         self.bind_pw = bind_pw
         self.base_dn = base_dn
         self.admin_filter = admin_filter
-        self.user_filter = user_filer
+        self.user_filter = user_filter
         con = self.connect()
         con.unbind()
     
@@ -55,7 +55,7 @@ class LdapHelper:
             result = con.entries
             if len(result) > 0:
                 if len(result) > 1:
-                    LOG.debug('Found more than one entry for filter %s' % (self.current_filter.format(**filter_args)))
+                    LOG.debug('Found more than one entry for filter %s' % (current_filter.format(**filter_args)))
                     LOG.info(('Found more than one entry for filter args %s' % (filter_args)))
                     return None, con
                 LOG.debug('Found user %s: %s' % (user, user_data))
@@ -78,7 +78,7 @@ class LdapHelper:
 
     def auth(self, con, user_dn, password):
         try:
-            con.rebind(user=user_dn, password=escape_filter_chars(password))
+            con.rebind(user=user_dn, password=password)
             LOG.debug("Username %s with supplied password is valid" % (user_dn))
             return True
         except LDAPInvalidCredentialsResult:
@@ -107,8 +107,10 @@ def json_auth():
 
     dn = user_data.pop('dn')
     if not helper.auth(con, dn, password):
+        con.unbind()
         return jsonify({"message": "invalid credential"}), 403
     else:
+        con.unbind()
         return jsonify({"message": "login succeeded", "data": user_data}), 200
 
 
@@ -130,7 +132,7 @@ def auth_header():
         username, password = decoded_credentials.split(':')
         if not username or not password:
             return Response('Username or password may not be empty\n', status=400)
-    except Exception as e:
+    except Exception:
         return Response('Invalid request format\n', status=400)
     
     helper: LdapHelper = LDAP_HELPER
@@ -141,8 +143,10 @@ def auth_header():
 
     dn = user_data.pop('dn')
     if not helper.auth(con, dn, password):
+        con.unbind()
         return Response('Forbidden\n', status=403)
     else:
+        con.unbind()
         resp = '\n'.join([f'{k} = {v}' for k, v in user_data.items()])
         return Response(resp + '\n', status=200)
 
@@ -178,16 +182,19 @@ def group(ctx, host, bind_dn, bind_dn_password, base_dn, admin_filter, user_filt
 @click.pass_context
 def search(ctx, user):
     helper: LdapHelper = ctx.obj['helper']
-    _, con = _search(helper, user)
-    con.unbind()
+    user_data, con = _search(helper, user)
+    if con:
+        con.unbind()
 
 def _search(helper, user):
     user_data, con = helper.search(user)
     if user_data:
         print(f'Success finding user {user}: {user_data}')
+        return user_data, con
     else:
         print(f"User {user} not found")
-    return user_data['dn'], con
+        con.unbind()
+        return None, None
 
 @group.command()
 @click.option('--user', '-u', type=str, required=True,
@@ -196,8 +203,11 @@ def _search(helper, user):
 @click.pass_context
 def auth(ctx, user, password):
     helper: LdapHelper = ctx.obj['helper']
-    dn, _, con = _search(helper, user)
-    helper.auth(con, dn, password)
+    user_data, con = _search(helper, user)
+    if not user_data:
+        sys.exit(1)
+    helper.auth(con, user_data['dn'], password)
+    con.unbind()
 
 
 @group.command()
