@@ -1,6 +1,22 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:recommended",
+    "docker:enableMajor",
+    ":pinAllExceptPeerDependencies"
+  ],
+  "pip_requirements": {
+    "fileMatch": ["requirements.*\\.txt$"]
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["pip_requirements"],
+      "matchFileNames": ["requirements-dev.txt"],
+      "groupName": "dev dependencies"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    }
   ]
 }
