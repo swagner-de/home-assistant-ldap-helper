@@ -226,5 +226,8 @@ def run_server(ctx, unix_socket, listen_address, port):
     else:
         app.run(host=listen_address, port=port)
 
-if __name__ == "__main__":
+def main():
     group(auto_envvar_prefix='HA_LDAP')
+
+if __name__ == "__main__":
+    main()
