@@ -1,10 +1,7 @@
 import base64
-import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-sys.path.insert(0, ".")
 
 
 def make_mock_entry(dn="cn=testuser,ou=users,dc=example,dc=com", display_name="Test User", name="testuser"):
@@ -17,8 +14,7 @@ def make_mock_entry(dn="cn=testuser,ou=users,dc=example,dc=com", display_name="T
 
 def make_helper(admin_filter="(&(cn={username})(group=admin))", user_filter="(&(cn={username})(group=users))"):
     with patch("ldap3.Connection"):
-        from importlib import import_module
-        mod = import_module("ldap-helper")
+        import ldap_helper as mod
         helper = mod.LdapHelper(
             host="ldap://localhost",
             bind_dn="cn=admin,dc=example,dc=com",

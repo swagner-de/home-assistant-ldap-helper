@@ -1,15 +1,20 @@
-FROM debian:13-slim AS build
+FROM debian:trixie-slim AS build
+
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy
+
 RUN apt-get update && \
-    apt-get install --no-install-suggests --no-install-recommends --yes python3-venv gcc libpython3-dev && \
-    python3 -m venv /venv && \
-    /venv/bin/pip install --upgrade pip setuptools wheel
+    apt-get install --no-install-suggests --no-install-recommends --yes python3-venv && \
+    rm -rf /var/lib/apt/lists/*
 
-FROM build AS build-venv
-COPY requirements.txt /requirements.txt
-RUN /venv/bin/pip install --disable-pip-version-check -r /requirements.txt
+WORKDIR /src
+COPY pyproject.toml ldap_helper.py ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv venv /venv && \
+    uv pip install --python /venv/bin/python .
 
-FROM gcr.io/distroless/python3-debian12
-COPY --from=build-venv /venv /venv
-COPY . /app
-WORKDIR /app
-ENTRYPOINT ["/venv/bin/python3", "ldap-helper.py"]
+FROM gcr.io/distroless/python3-debian13
+COPY --from=build /venv /venv
+ENTRYPOINT ["/venv/bin/ldap-helper"]

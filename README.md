@@ -135,18 +135,26 @@ homeassistant:
       curl -sf -H "Authorization: Basic $AUTH" --unix-socket /var/run/ldap-auth-helper/ldap-helper.sock http://localhost/auth-header
 ```
 
+## Installation
+
+```bash
+pip install git+https://github.com/swagner-de/home-assistant-ldap-helper.git
+```
+
+This installs the `ldap-helper` CLI command.
+
 ## CLI commands
 
 Besides `run-server`, two additional commands are available for debugging:
 
 ```bash
 # Search for a user
-python ldap-helper.py --host ldap.example.com --bind-dn "..." --bind-dn-password "..." \
+ldap-helper --host ldap.example.com --bind-dn "..." --bind-dn-password "..." \
   --base-dn "..." --admin-filter "..." --user-filter "..." \
   search --user myuser
 
 # Authenticate a user
-python ldap-helper.py --host ldap.example.com --bind-dn "..." --bind-dn-password "..." \
+ldap-helper --host ldap.example.com --bind-dn "..." --bind-dn-password "..." \
   --base-dn "..." --admin-filter "..." --user-filter "..." \
   auth --user myuser --password mypassword
 ```
@@ -158,8 +166,8 @@ python ldap-helper.py --host ldap.example.com --bind-dn "..." --bind-dn-password
 pyenv virtualenv 3.12.7 home-assistant-ldap-helper
 pyenv local home-assistant-ldap-helper
 
-# Install dependencies
-pip install -r requirements.txt -r requirements-dev.txt
+# Install in editable mode with dev dependencies
+pip install -e ".[dev]"
 
 # Run tests
 pytest tests/ -v
