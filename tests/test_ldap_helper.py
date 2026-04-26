@@ -4,7 +4,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-def make_mock_entry(dn="cn=testuser,ou=users,dc=example,dc=com", display_name="Test User", name="testuser"):
+def make_mock_entry(
+    dn="cn=testuser,ou=users,dc=example,dc=com",
+    display_name="Test User",
+    name="testuser",
+):
     entry = MagicMock()
     entry.entry_dn = dn
     entry.displayName.value = display_name
@@ -12,9 +16,13 @@ def make_mock_entry(dn="cn=testuser,ou=users,dc=example,dc=com", display_name="T
     return entry
 
 
-def make_helper(admin_filter="(&(cn={username})(group=admin))", user_filter="(&(cn={username})(group=users))"):
+def make_helper(
+    admin_filter="(&(cn={username})(group=admin))",
+    user_filter="(&(cn={username})(group=users))",
+):
     with patch("ldap3.Connection"):
         import ldap_helper as mod
+
         helper = mod.LdapHelper(
             host="ldap://localhost",
             bind_dn="cn=admin,dc=example,dc=com",
@@ -185,10 +193,17 @@ class TestJsonAuthEndpoint:
         return mock_helper, mock_con
 
     def test_success(self):
-        user_data = {"dn": "cn=test,dc=example", "name": "Test", "group": "system-admin", "local_only": "false"}
+        user_data = {
+            "dn": "cn=test,dc=example",
+            "name": "Test",
+            "group": "system-admin",
+            "local_only": "false",
+        }
         self._set_helper(user_data.copy())
 
-        resp = self.client.post("/json-auth", json={"username": "test", "password": "pass"})
+        resp = self.client.post(
+            "/json-auth", json={"username": "test", "password": "pass"}
+        )
 
         assert resp.status_code == 200
         data = resp.get_json()
@@ -206,15 +221,24 @@ class TestJsonAuthEndpoint:
     def test_user_not_found(self):
         self._set_helper(None)
 
-        resp = self.client.post("/json-auth", json={"username": "unknown", "password": "pass"})
+        resp = self.client.post(
+            "/json-auth", json={"username": "unknown", "password": "pass"}
+        )
 
         assert resp.status_code == 403
 
     def test_wrong_password(self):
-        user_data = {"dn": "cn=test,dc=example", "name": "Test", "group": "system-admin", "local_only": "false"}
+        user_data = {
+            "dn": "cn=test,dc=example",
+            "name": "Test",
+            "group": "system-admin",
+            "local_only": "false",
+        }
         self._set_helper(user_data.copy(), auth_return=False)
 
-        resp = self.client.post("/json-auth", json={"username": "test", "password": "wrong"})
+        resp = self.client.post(
+            "/json-auth", json={"username": "test", "password": "wrong"}
+        )
 
         assert resp.status_code == 403
 
@@ -223,7 +247,12 @@ class TestJsonAuthEndpoint:
         assert resp.status_code == 400
 
     def test_connection_unbound_on_success(self):
-        user_data = {"dn": "cn=test,dc=example", "name": "Test", "group": "system-admin", "local_only": "false"}
+        user_data = {
+            "dn": "cn=test,dc=example",
+            "name": "Test",
+            "group": "system-admin",
+            "local_only": "false",
+        }
         _, mock_con = self._set_helper(user_data.copy())
 
         self.client.post("/json-auth", json={"username": "test", "password": "pass"})
@@ -259,10 +288,17 @@ class TestAuthHeaderEndpoint:
         return {"Authorization": f"Basic {creds}"}
 
     def test_success(self):
-        user_data = {"dn": "cn=test,dc=example", "name": "Test", "group": "system-admin", "local_only": "false"}
+        user_data = {
+            "dn": "cn=test,dc=example",
+            "name": "Test",
+            "group": "system-admin",
+            "local_only": "false",
+        }
         self._set_helper(user_data.copy())
 
-        resp = self.client.get("/auth-header", headers=self._basic_auth_header("test", "pass"))
+        resp = self.client.get(
+            "/auth-header", headers=self._basic_auth_header("test", "pass")
+        )
 
         assert resp.status_code == 200
         body = resp.data.decode()
@@ -276,35 +312,55 @@ class TestAuthHeaderEndpoint:
         assert "WWW-Authenticate" in resp.headers
 
     def test_non_basic_auth(self):
-        resp = self.client.get("/auth-header", headers={"Authorization": "Bearer token123"})
+        resp = self.client.get(
+            "/auth-header", headers={"Authorization": "Bearer token123"}
+        )
 
         assert resp.status_code == 401
 
     def test_user_not_found(self):
         self._set_helper(None)
 
-        resp = self.client.get("/auth-header", headers=self._basic_auth_header("unknown", "pass"))
+        resp = self.client.get(
+            "/auth-header", headers=self._basic_auth_header("unknown", "pass")
+        )
 
         assert resp.status_code == 403
 
     def test_wrong_password(self):
-        user_data = {"dn": "cn=test,dc=example", "name": "Test", "group": "system-admin", "local_only": "false"}
+        user_data = {
+            "dn": "cn=test,dc=example",
+            "name": "Test",
+            "group": "system-admin",
+            "local_only": "false",
+        }
         self._set_helper(user_data.copy(), auth_return=False)
 
-        resp = self.client.get("/auth-header", headers=self._basic_auth_header("test", "wrong"))
+        resp = self.client.get(
+            "/auth-header", headers=self._basic_auth_header("test", "wrong")
+        )
 
         assert resp.status_code == 403
 
     def test_empty_username(self):
-        resp = self.client.get("/auth-header", headers=self._basic_auth_header("", "pass"))
+        resp = self.client.get(
+            "/auth-header", headers=self._basic_auth_header("", "pass")
+        )
         assert resp.status_code == 400
 
     def test_invalid_base64(self):
-        resp = self.client.get("/auth-header", headers={"Authorization": "Basic !!!notbase64"})
+        resp = self.client.get(
+            "/auth-header", headers={"Authorization": "Basic !!!notbase64"}
+        )
         assert resp.status_code == 400
 
     def test_connection_unbound_on_success(self):
-        user_data = {"dn": "cn=test,dc=example", "name": "Test", "group": "system-admin", "local_only": "false"}
+        user_data = {
+            "dn": "cn=test,dc=example",
+            "name": "Test",
+            "group": "system-admin",
+            "local_only": "false",
+        }
         _, mock_con = self._set_helper(user_data.copy())
 
         self.client.get("/auth-header", headers=self._basic_auth_header("test", "pass"))

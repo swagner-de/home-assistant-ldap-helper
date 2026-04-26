@@ -37,5 +37,5 @@ testpaths = ["tests"]
 version_toml = ["pyproject.toml:project.version"]
 branch = "main"
 changelog_file = "CHANGELOG.md"
-build_command = false
+build_command = ""
 tag_format = "v{version}"
