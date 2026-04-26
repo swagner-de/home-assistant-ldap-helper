@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "home-assistant-ldap-helper"
-version = "0.3.0"
+version = "0.4.0"
 description = "LDAP authentication helper for Home Assistant's command-line auth provider"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -32,3 +32,10 @@ target-version = "py311"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+branch = "main"
+changelog_file = "CHANGELOG.md"
+build_command = false
+tag_format = "v{version}"
