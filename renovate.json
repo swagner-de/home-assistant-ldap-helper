@@ -5,6 +5,7 @@
     "docker:enableMajor",
     ":pinAllExceptPeerDependencies"
   ],
+  "semanticCommits": "enabled",
   "pip_requirements": {
     "fileMatch": ["requirements.*\\.txt$"]
   },
@@ -17,6 +18,11 @@
     {
       "matchManagers": ["github-actions"],
       "groupName": "github actions"
+    },
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true,
+      "automergeType": "pr"
     }
   ]
 }
