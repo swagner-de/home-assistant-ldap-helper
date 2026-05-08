@@ -2,6 +2,24 @@
 
 <!-- version list -->
 
+## v1.0.1 (2026-05-08)
+
+### Bug Fixes
+
+- **deps**: Update dependency click to v8.3.3
+  ([#20](https://github.com/swagner-de/home-assistant-ldap-helper/pull/20),
+  [`40deace`](https://github.com/swagner-de/home-assistant-ldap-helper/commit/40deace3fc16d66d8ee50df23b0d6a5e97723845))
+
+### Chores
+
+- Add renovate[bot] to CODEOWNERS and enable semantic commits + automerge
+  ([`4979a5e`](https://github.com/swagner-de/home-assistant-ldap-helper/commit/4979a5eb6e2fee8a622d80f61853eaaca2859eb5))
+
+- **deps**: Pin dependency python to 3.13.13
+  ([#19](https://github.com/swagner-de/home-assistant-ldap-helper/pull/19),
+  [`14f7d24`](https://github.com/swagner-de/home-assistant-ldap-helper/commit/14f7d24c6b40761403af73137796de2edb823edb))
+
+
 ## v1.0.0 (2026-04-26)
 
 ### Bug Fixes
