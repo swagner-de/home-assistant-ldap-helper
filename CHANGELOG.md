@@ -2,6 +2,25 @@
 
 <!-- version list -->
 
+## v1.0.3 (2026-07-07)
+
+### Bug Fixes
+
+- **deps**: Update dependency flask to v3.1.3
+  ([#21](https://github.com/swagner-de/home-assistant-ldap-helper/pull/21),
+  [`0639d7b`](https://github.com/swagner-de/home-assistant-ldap-helper/commit/0639d7b3521e605602b01eb30810464afd4e486c))
+
+- **deps**: Update dependency pytest to v9.1.1
+  ([#29](https://github.com/swagner-de/home-assistant-ldap-helper/pull/29),
+  [`1ff83d3`](https://github.com/swagner-de/home-assistant-ldap-helper/commit/1ff83d3fcba1585a301c46bb1574742e740f6cc4))
+
+### Chores
+
+- **deps**: Update actions/checkout action to v7
+  ([#30](https://github.com/swagner-de/home-assistant-ldap-helper/pull/30),
+  [`2fc37bd`](https://github.com/swagner-de/home-assistant-ldap-helper/commit/2fc37bd329b09f672422b012c0a9584d66257a05))
+
+
 ## v1.0.2 (2026-07-07)
 
 ### Bug Fixes
